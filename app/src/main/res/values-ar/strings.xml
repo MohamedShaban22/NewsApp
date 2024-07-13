@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">News App</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="nav_open">Open</string>
+    <string name="nav_close">Close</string>
+    <string name="sports">الرياضة</string>
+    <string name="health">الصحة</string>
+    <string name="science">العلوم</string>
+    <string name="business">الأعمال</string>
+    <string name="technology">تكنولوجيا</string>
+    <string name="entertainment">الترفيه</string>
+    <string name="language">اللغة :</string>
+    <string name="categories">التصنيفات</string>
+
+    <string name="settings">الإعدلدات</string>
+
+    <string-array name="spinner_items">
+        <item>اللغة</item>
+        <item>الإنجليزية</item>
+        <item>العربية</item>
+
+    </string-array></resources>
