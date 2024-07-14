@@ -2,6 +2,7 @@ package com.example.newsapp.ui.home
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.view.MenuItem
 import android.view.View
 import android.widget.TextView
@@ -10,17 +11,22 @@ import androidx.core.view.GravityCompat
 import androidx.core.view.isVisible
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.example.newsapp.R
 import com.example.newsapp.Settings
 import com.example.newsapp.databinding.ActivityHomeActiviteBinding
 import com.example.newsapp.ui.home.news.NewsFragment
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
+@AndroidEntryPoint
 class HomeActivity : AppCompatActivity() {
     lateinit var viewBinding: ActivityHomeActiviteBinding
     lateinit var drawerLayout: DrawerLayout
     lateinit var actionBarDrawerToggle: ActionBarDrawerToggle
     lateinit var Title:TextView
     lateinit var categoriesFragment:Categories
+    private var backStack=0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,6 +62,8 @@ class HomeActivity : AppCompatActivity() {
                     viewBinding.icSearch.visibility=View.GONE
                     viewBinding.searchView.visibility=View.GONE
                     pushFragment(categoriesFragment)
+                    backStack=0
+
                 }
 
                 R.id.nav_settings -> {
@@ -64,6 +72,7 @@ class HomeActivity : AppCompatActivity() {
                     viewBinding.icSearch.visibility=View.GONE
                     viewBinding.searchView.visibility=View.GONE
                     pushFragment(settingsFragment)
+                    backStack=2
                 }
             }
 
@@ -71,19 +80,33 @@ class HomeActivity : AppCompatActivity() {
             true
         }
         iconSearchOnclick()
-        searchApi()
+        lifecycleScope.launch {
+            try {
+                searchApi()
+            }catch (e:Exception){
+                Log.e("ExeApiSearch : " ,e.localizedMessage?:"")
+            }
+        }
 
     }
 
-    private fun searchApi() {
+    private suspend fun searchApi() {
         viewBinding.searchView.setOnQueryTextListener(object :androidx.appcompat.widget.SearchView.OnQueryTextListener{
             override fun onQueryTextSubmit(query: String?): Boolean {
-                TODO("Not yet implemented")
+                lifecycleScope.launch {
+
+                    val fragment =
+                        supportFragmentManager.findFragmentById(R.id.frame_layout) as? NewsFragment
+                    fragment?.updateSearchQuery(query)
+                }
+                return true
             }
 
             override fun onQueryTextChange(newText: String?): Boolean {
-                val fragment = supportFragmentManager.findFragmentById(R.id.frame_layout) as? NewsFragment
-                fragment?.updateSearchQuery(newText)
+                lifecycleScope.launch {
+                    val fragment = supportFragmentManager.findFragmentById(R.id.frame_layout) as? NewsFragment
+                    fragment?.updateSearchQuery(newText)
+                }
                 return true
             }
 
@@ -156,7 +179,8 @@ class HomeActivity : AppCompatActivity() {
 
     private fun pushFragment(fragment: Fragment) {
         supportFragmentManager.beginTransaction()
-            .replace(R.id.frame_layout,fragment).commit()
+            .replace(R.id.frame_layout,fragment)
+            .commit()
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -165,4 +189,3 @@ class HomeActivity : AppCompatActivity() {
         } else super.onOptionsItemSelected(item)
     }
 }
-//01006821470

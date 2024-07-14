@@ -1,95 +1,96 @@
 package com.example.newsapp.ui.home.news
 
-import androidx.core.view.isVisible
+import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.example.newsapp.api.model.ApiConstants
-import com.example.newsapp.api.model.ApiManager
-import com.example.newsapp.api.model.newsResponce.News
-import com.example.newsapp.api.model.newsResponce.NewsResponse
-import com.example.newsapp.api.model.sourcesResponce.Source
-import com.example.newsapp.api.model.sourcesResponce.SourcesResponse
+import androidx.lifecycle.viewModelScope
+import com.example.domain.entity.newsResponce.News
+import com.example.domain.entity.sourcesResponce.Source
+import com.example.domain.usecase.GetNews
+import com.example.domain.usecase.GetNewsSearch
+import com.example.domain.usecase.GetSources
 import com.example.newsapp.ui.ViewError
-import com.google.gson.Gson
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
+import retrofit2.HttpException
+import javax.inject.Inject
+import kotlin.Exception
 
-class NewsViewModel:ViewModel() {
-    val shouldShowLoading=MutableLiveData<Boolean>()
-    val sourceLiveData= MutableLiveData<List<Source?>?>()
-    val newsLiveData=MutableLiveData<List<News?>?>()
-    val errorLiveData=MutableLiveData<ViewError>()
-     fun getNewsSources(category:String) {
-       // shouldShowLoading.value=true
+@HiltViewModel
+class NewsViewModel @Inject constructor(
+    val newsUseCase: GetNews, val getSources: GetSources, val getSearchList: GetNewsSearch
+) :
+    ViewModel() {
+    val shouldShowLoading = MutableLiveData<Boolean>()
+    val sourceLiveData = MutableLiveData<List<Source?>?>()
+    val newsLiveData = MutableLiveData<List<News?>?>()
+    val newsSearchLiveData = MutableLiveData<List<News?>?>()
+
+    val errorLiveData = MutableLiveData<ViewError>()
+
+
+     suspend fun getNewsSearch(q: String) {
         shouldShowLoading.postValue(true)
-        //viewBinding.progressBar.isVisible=true
-        ApiManager.getApi()
-        .getResources(ApiConstants.apiKey,category)
-        .enqueue(object : Callback<SourcesResponse> {
-            override fun onResponse(
-                call: Call<SourcesResponse>,
-                response: Response<SourcesResponse>
-            ) {
+        viewModelScope.launch {
+            try {
                 shouldShowLoading.postValue(false)
-                if(response.isSuccessful) {
-                    //show tabs un fragment
-                  //  bindTabs(response.body()?.sources)
-                    sourceLiveData.postValue(response.body()?.sources)
+                newsSearchLiveData.postValue(getSearchList(q = q).articles)
+            } catch (e: Exception) {
 
-                }else{
-                    val errorBodyJasonString= response.errorBody()?.string()
-                    val response= Gson().fromJson(errorBodyJasonString, SourcesResponse::class.java)
-                    errorLiveData.postValue(
-                        ViewError(message = response.message)
-                        { getNewsSources(category) }
-                    )
-
-                }
-
-            }
-
-            override fun onFailure(call: Call<SourcesResponse>, t: Throwable) {
-                shouldShowLoading.postValue(false)
                 errorLiveData.postValue(
-                    ViewError(throwable = t)
-                    { getNewsSources(category) }
+                    ViewError(message = e.localizedMessage ?: "") {
+                        viewModelScope.launch {
+                            getNewsSearch(q)
+                        }
+                    }
                 )
             }
-        })
+        }
+
+
     }
 
-    fun getNews(sourceId: String?) {
-        shouldShowLoading.postValue(true)
-        ApiManager.getApi()
-        .getNews(sources = sourceId?:"")
-        .enqueue(object : Callback<NewsResponse> {
-            override fun onResponse(
-                call: Call<NewsResponse>,
-                response: Response<NewsResponse>
-            ) {
-                shouldShowLoading.postValue(false)
-                if (response.isSuccessful){
-                    //show News
-                    newsLiveData.postValue(response.body()?.articles)
-                    return
+
+suspend fun getNewsSources(category: String) {
+    // shouldShowLoading.value=true
+    shouldShowLoading.postValue(true)
+    //viewBinding.progressBar.isVisible=true
+    viewModelScope.launch {
+        shouldShowLoading.postValue(false)
+        try {
+            sourceLiveData.postValue(getSources(category = category).sources)
+        } catch (e: Exception) {
+            errorLiveData.postValue(
+                ViewError(message = e.localizedMessage ?: "")
+                {
+                    viewModelScope.launch {
+                        getNewsSources(category)
+                    }
                 }
-                val responseJasonError =response.errorBody()?.string()
-                val errorResponse =Gson().fromJson(responseJasonError, NewsResponse::class.java)
-                errorLiveData.postValue(
-                    ViewError(message = errorResponse.message)
-                    { getNews(sourceId) }
-                )
-            }
-
-            override fun onFailure(call: Call<NewsResponse>, t: Throwable) {
-                shouldShowLoading.postValue(false)
-
-                errorLiveData.postValue(
-                    ViewError(throwable = t)
-                    { getNews(sourceId) }
-                )
-            }
-        })
+            )
+        }
     }
+
+}
+
+suspend fun getNews(sourceId: String) {
+    shouldShowLoading.postValue(true)
+    viewModelScope.launch {
+        try {
+            shouldShowLoading.postValue(false)
+            newsLiveData.postValue(newsUseCase(sources = sourceId).articles)
+        } catch (e: HttpException) {
+
+            errorLiveData.postValue(
+                ViewError(message = e.localizedMessage ?: "") {
+                    viewModelScope.launch {
+                        getNews(sourceId)
+                    }
+                })
+        } catch (e: Exception) {
+            Log.e("NewsEx :", e.localizedMessage ?: "")
+        }
+    }
+}
+
 }

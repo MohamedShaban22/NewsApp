@@ -5,10 +5,10 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.newsapp.R
-import com.example.newsapp.api.model.newsResponce.News
+import com.example.domain.entity.newsResponce.News
 import com.example.newsapp.databinding.ItemNewsBinding
 
-class NewsAdapter(var newsList:List<News?>?=null):RecyclerView.Adapter<NewsAdapter.ViewHolder> (){
+class NewsAdapter(private var newsList:List<News?>?=null):RecyclerView.Adapter<NewsAdapter.ViewHolder> (){
 
 
 
@@ -48,6 +48,6 @@ class NewsAdapter(var newsList:List<News?>?=null):RecyclerView.Adapter<NewsAdapt
     }
     var onItemClickListener:OnItemClickListener?=null
     interface OnItemClickListener{
-        fun onItemClick(position: Int,news:News)
+        fun onItemClick(position: Int,news: News)
     }
 }
